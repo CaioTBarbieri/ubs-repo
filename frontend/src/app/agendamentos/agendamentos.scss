@@ -19,10 +19,10 @@ mat-card {
   mat-card-content {
     form {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(440px, 2fr));
-      gap: 34px;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 24px;
       width: 100%;
-      
+
       mat-form-field {
         width: 100%;
         margin-top: 8px;
