@@ -1,18 +1,19 @@
 package br.sp.gov.fatec.ubs.backend.services;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import br.sp.gov.fatec.ubs.backend.model.Agendamento;
 import br.sp.gov.fatec.ubs.backend.model.Medico;
 import br.sp.gov.fatec.ubs.backend.model.Paciente;
 import br.sp.gov.fatec.ubs.backend.repositories.AgendamentoRepository;
 import br.sp.gov.fatec.ubs.backend.repositories.MedicoRepository;
 import br.sp.gov.fatec.ubs.backend.repositories.PacienteRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-
+import br.sp.gov.fatec.ubs.backend.model.InputModel.AgendamentoInput;
 @Service
 public class AgendamentoService {
     
@@ -120,6 +121,16 @@ public class AgendamentoService {
     // Marcar falta
     public Agendamento marcarFalta(Long id) {
         return atualizarStatus(id, Agendamento.StatusAgendamento.FALTOU);
+    }
+
+      public Agendamento editarAgendamento(AgendamentoInput agendamentoAtualizado) {
+        Optional<Agendamento> agendamento = agendamentoRepository.findById(agendamentoAtualizado.getId());
+        if (agendamento.isEmpty()) {
+            throw new IllegalArgumentException("Agendamento não encontrado");
+        }
+        
+        agendamento.get().setStatus(agendamentoAtualizado.getStatus());
+        return agendamentoRepository.save(agendamento.get());
     }
     
     // Atualizar observações

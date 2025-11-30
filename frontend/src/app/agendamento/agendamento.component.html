@@ -4,8 +4,10 @@
     <form [formGroup]="agendamentoForm" (ngSubmit)="onSubmit()">
       <mat-form-field class="Paciente" appearance="outline" style="width: 500px;">
         <mat-label>Paciente</mat-label>
-        <input matInput formControlName="pacienteInput" [matAutocomplete]="autoPaciente" placeholder="Digite nome ou CPF" />
-        <mat-autocomplete #autoPaciente="matAutocomplete" (optionSelected)="onPacienteSelecionado($event.option.value)" [displayWith]="displayPaciente">
+        <input matInput formControlName="pacienteInput" [matAutocomplete]="autoPaciente"
+          placeholder="Digite nome ou CPF" />
+        <mat-autocomplete #autoPaciente="matAutocomplete" (optionSelected)="onPacienteSelecionado($event.option.value)"
+          [displayWith]="displayPaciente">
           <mat-option *ngFor="let p of pacientesFiltrados | async" [value]="p">
             {{ p.nomeCompleto }} – {{ p.cpf }}
           </mat-option>
@@ -17,7 +19,8 @@
         <mat-select formControlName="tipoConsulta" required>
           <mat-option *ngFor="let tipo of tiposConsulta" [value]="tipo">{{ tipo }}</mat-option>
         </mat-select>
-        <mat-error *ngIf="agendamentoForm.get('tipoConsulta')?.hasError('required')">Tipo de consulta é obrigatório</mat-error>
+        <mat-error *ngIf="agendamentoForm.get('tipoConsulta')?.hasError('required')">Tipo de consulta é
+          obrigatório</mat-error>
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Médico</mat-label>
@@ -37,18 +40,17 @@
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Hora da Consulta</mat-label>
-        <input matInput type="time" formControlName="horaConsulta" required />
-        <mat-error *ngIf="agendamentoForm.get('horaConsulta')?.hasError('required')">Hora é obrigatória</mat-error>
+        <input matInput type="time" formControlName="horaConsulta">
       </mat-form-field>
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Observações</mat-label>
         <textarea matInput formControlName="observacoes" rows="3"></textarea>
       </mat-form-field>
       <div class="form-actions">
-        <button mat-raised-button color="primary" type="submit" [disabled]="agendamentoForm.invalid">Criar Agendamento</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="agendamentoForm.invalid">Criar
+          Agendamento</button>
         <button mat-button type="button" (click)="agendamentoForm.reset()">Limpar</button>
       </div>
     </form>
   </mat-card-content>
 </mat-card>
-

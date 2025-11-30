@@ -1,15 +1,26 @@
 package br.sp.gov.fatec.ubs.backend.controllers;
 
-import br.sp.gov.fatec.ubs.backend.model.Agendamento;
-import br.sp.gov.fatec.ubs.backend.services.AgendamentoService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import br.sp.gov.fatec.ubs.backend.model.InputModel.AgendamentoInput;
+
+import br.sp.gov.fatec.ubs.backend.model.Agendamento;
+import br.sp.gov.fatec.ubs.backend.services.AgendamentoService;
 
 @RestController
 @RequestMapping("/api/agendamentos")
@@ -133,6 +144,16 @@ public class AgendamentoController {
     public ResponseEntity<Agendamento> marcarFalta(@PathVariable Long id) {
         try {
             Agendamento agendamento = agendamentoService.marcarFalta(id);
+            return ResponseEntity.ok(agendamento);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Agendamento> editarAgendamento(@PathVariable AgendamentoInput agendamentoAtualizado) {
+        try {
+            Agendamento agendamento = agendamentoService.editarAgendamento(agendamentoAtualizado);
             return ResponseEntity.ok(agendamento);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();

@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core'; // Adicionado ViewChild e AfterViewInit
+import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Observable, map, startWith } from 'rxjs';
@@ -9,14 +9,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table'; // Adicionado MatTableDataSource
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'; // Adicionado MatPaginator
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MAT_DATE_LOCALE, MatOptionModule } from '@angular/material/core';
 import { MomentDateAdapter, MAT_MOMENT_DATE_ADAPTER_OPTIONS } from '@angular/material-moment-adapter';
 import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core';
+import { HttpClient } from '@angular/common/http';
+
 import { AgendamentoService } from '../service/agendamento.service';
 import { PacienteService } from '../service/paciente.service';
 import { MedicoService } from '../service/medico.service';
@@ -41,15 +43,15 @@ export const MY_FORMATS = {
     CommonModule, ReactiveFormsModule, MatCardModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatOptionModule, MatAutocompleteModule,
     MatButtonModule, MatTableModule, MatIconModule, MatChipsModule,
-    MatDatepickerModule, MatSnackBarModule, MatPaginatorModule // Adicionado MatPaginatorModule
+    MatDatepickerModule, MatSnackBarModule, MatPaginatorModule
   ],
-  templateUrl: './agendamento.component.html',
-  styleUrls: ['./agendamento.component.scss'],
   providers: [
     { provide: MAT_DATE_LOCALE, useValue: 'pt-BR' },
     { provide: DateAdapter, useClass: MomentDateAdapter, deps: [MAT_DATE_LOCALE, MAT_MOMENT_DATE_ADAPTER_OPTIONS] },
     { provide: MAT_DATE_FORMATS, useValue: MY_FORMATS },
-  ]
+  ],
+  templateUrl: './agendamento.component.html',
+  styleUrls: ['./agendamento.component.scss']
 })
 export class AgendamentoComponent implements OnInit, AfterViewInit {
   agendamentoForm: FormGroup;
@@ -60,27 +62,32 @@ export class AgendamentoComponent implements OnInit, AfterViewInit {
   medicosFiltrados: Medico[] = [];
   tiposConsulta = TIPOS_CONSULTA;
   statusOptions = Object.values(StatusAgendamento);
-  
+
   dataSource = new MatTableDataSource<Agendamento>();
-  displayedColumns = [ 'paciente', 'medico', 'dataHora', 'tipoConsulta', 'status', 'acoes' ];
+  displayedColumns = ['paciente', 'medico', 'dataHora', 'tipoConsulta', 'status', 'acoes'];
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(
     private fb: FormBuilder,
+    private http: HttpClient,
     private agendamentoService: AgendamentoService,
     private pacienteService: PacienteService,
     private medicoService: MedicoService,
     private snackBar: MatSnackBar
   ) {
     this.agendamentoForm = this.fb.group({
-      pacienteInput: [''], pacienteId: ['', Validators.required],
-      tipoConsulta: ['', Validators.required], medicoId: ['', Validators.required],
-      dataConsulta: ['', Validators.required], horaConsulta: ['', Validators.required],
+      pacienteInput: [''],
+      pacienteId: ['', Validators.required],
+      tipoConsulta: ['', Validators.required],
+      medicoId: ['', Validators.required],
+      dataConsulta: ['', Validators.required],
+
+      horaConsulta: [''],
+
       observacoes: ['']
     });
 
-    // Inicializa o formulário de filtro
     this.filtroForm = this.fb.group({
       termoBusca: [''],
       dataFiltro: [''],
@@ -106,7 +113,7 @@ export class AgendamentoComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
   }
 
-  // --- MÉTODOS DE CARREGAMENTO DE DADOS ---
+  // --- CARREGAMENTO ---
   private carregarDados(): void {
     this.carregarAgendamentos();
     this.carregarPacientes();
@@ -140,7 +147,6 @@ export class AgendamentoComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // --- MÉTODOS DE FILTRAGEM ---
   configurarFiltro(): void {
     this.dataSource.filterPredicate = (data: Agendamento, filter: string): boolean => {
       const searchString = JSON.parse(filter);
@@ -152,13 +158,13 @@ export class AgendamentoComponent implements OnInit, AfterViewInit {
       }
 
       const matchNome = termoBusca === '' ||
-                        (data.paciente.nomeCompleto.toLowerCase().includes(termoBusca) ||
-                         data.medico.nomeCompleto.toLowerCase().includes(termoBusca));
-      
+        (data.paciente.nomeCompleto.toLowerCase().includes(termoBusca) ||
+          data.medico.nomeCompleto.toLowerCase().includes(termoBusca));
+
       const matchStatus = !statusFiltro || data.status === statusFiltro;
 
-      const matchData = !dataFiltro || 
-                        new Date(data.dataHoraConsulta).toDateString() === dataFiltro.toDateString();
+      const matchData = !dataFiltro ||
+        new Date(data.dataHoraConsulta).toDateString() === dataFiltro.toDateString();
 
       return matchNome && matchStatus && matchData;
     };
@@ -170,13 +176,32 @@ export class AgendamentoComponent implements OnInit, AfterViewInit {
       this.dataSource.paginator.firstPage();
     }
   }
-  
+
   limparFiltro(): void {
     this.filtroForm.reset({ termoBusca: '', dataFiltro: '', statusFiltro: '' });
     this.aplicarFiltro();
   }
 
   displayPaciente(paciente: Paciente): string { return paciente && paciente.nomeCompleto ? paciente.nomeCompleto : ''; }
+
+  formatarDataHora(s: string): string { return new Date(s).toLocaleString('pt-BR'); }
+
+  formatarEspecialidade(m: Medico): string {
+    const esp = m.especialidade;
+    return Array.isArray(esp) ? esp.join(', ') : esp;
+  }
+
+  getStatusColor(status: StatusAgendamento): string {
+    switch (status) {
+      case StatusAgendamento.AGENDADO: return 'primary';
+      case StatusAgendamento.CONFIRMADO: return 'accent';
+      case StatusAgendamento.CANCELADO: return 'warn';
+      case StatusAgendamento.REALIZADO: return 'primary';
+      case StatusAgendamento.FALTOU: return 'warn';
+      default: return 'primary';
+    }
+  }
+
   private _filtrarPacientes(valor: string): Paciente[] {
     const v = valor.toLowerCase();
     return this.pacientes.filter(p =>
@@ -186,6 +211,7 @@ export class AgendamentoComponent implements OnInit, AfterViewInit {
   }
 
   onPacienteSelecionado(p: Paciente): void { this.agendamentoForm.patchValue({ pacienteId: p.id, pacienteInput: p }); }
+
   private _filtrarMedicosPorTipo(tipo: string): void {
     if (!tipo || tipo === 'Consulta Clínica Geral' || tipo === 'Exame de Rotina' || tipo === 'Consulta de Retorno') {
       this.medicosFiltrados = [...this.medicos];
@@ -204,32 +230,68 @@ export class AgendamentoComponent implements OnInit, AfterViewInit {
     }
   }
 
-  formatarEspecialidade(m: Medico): string { const esp = m.especialidade; return Array.isArray(esp) ? esp.join(', ') : esp; }
+  private _montarRequest(): AgendamentoRequest {
+    const f = this.agendamentoForm.value;
+    const dataSelecionada = new Date(f.dataConsulta);
+    const hora = f.horaConsulta;
+
+    dataSelecionada.setMinutes(dataSelecionada.getMinutes() - dataSelecionada.getTimezoneOffset());
+    const dataISO = dataSelecionada.toISOString().slice(0, 10);
+
+    let dataHoraParaBackend = null;
+
+    if (hora) {
+      const horaCompleta = hora.length === 5 ? hora + ':00' : hora;
+      dataHoraParaBackend = `${dataISO}T${horaCompleta}`;
+    } else {
+      dataHoraParaBackend = `${dataISO}T00:00:00`;
+    }
+
+    return {
+      pacienteId: f.pacienteId,
+      medicoId: f.medicoId,
+      dataHoraConsulta: dataHoraParaBackend!,
+      tipoConsulta: f.tipoConsulta,
+      observacoes: f.observacoes
+    };
+  }
+
   onSubmit(): void {
     if (this.agendamentoForm.invalid) return;
+
     const req = this._montarRequest();
-    this.agendamentoService
-      .verificarDisponibilidade(req.medicoId, req.dataHoraConsulta)
-      .subscribe({
-        next: (response: any) => {
-          if (response.disponivel) {
-            this.agendamentoService.criarAgendamento(req).subscribe({
-              next: () => {
-                this.mostrarMensagem('Agendamento criado com sucesso!');
-                this.agendamentoForm.reset();
-                Object.keys(this.agendamentoForm.controls).forEach(key => {
-                  this.agendamentoForm.get(key)?.setErrors(null) ;
-                });
-                this.carregarAgendamentos();
-              },
-              error: () => this.mostrarMensagem('Erro ao criar agendamento.')
-            });
-          } else {
-            this.mostrarMensagem('Horário indisponível. Escolha outro horário.');
-          }
-        },
-        error: () => this.mostrarMensagem('Erro ao verificar disponibilidade.')
-      });
+    const temHora = !!this.agendamentoForm.get('horaConsulta')?.value;
+
+    if (temHora) {
+      this.agendamentoService
+        .verificarDisponibilidade(req.medicoId, req.dataHoraConsulta)
+        .subscribe({
+          next: (response: any) => {
+            if (response.disponivel) {
+              this.salvarNovoAgendamento(req);
+            } else {
+              this.mostrarMensagem('Horário indisponível. Escolha outro horário.');
+            }
+          },
+          error: () => this.mostrarMensagem('Erro ao verificar disponibilidade.')
+        });
+    } else {
+      this.salvarNovoAgendamento(req);
+    }
+  }
+
+  private salvarNovoAgendamento(req: AgendamentoRequest): void {
+    this.agendamentoService.criarAgendamento(req).subscribe({
+      next: () => {
+        this.mostrarMensagem('Agendamento criado com sucesso!');
+        this.agendamentoForm.reset();
+        Object.keys(this.agendamentoForm.controls).forEach(key => {
+          this.agendamentoForm.get(key)?.setErrors(null);
+        });
+        this.carregarAgendamentos();
+      },
+      error: () => this.mostrarMensagem('Erro ao criar agendamento.')
+    });
   }
 
   cancelarAgendamento(id: number): void {
@@ -253,33 +315,6 @@ export class AgendamentoComponent implements OnInit, AfterViewInit {
     });
   }
 
-  getStatusColor(status: StatusAgendamento): string {
-    switch (status) {
-      case StatusAgendamento.AGENDADO: return 'primary';
-      case StatusAgendamento.CONFIRMADO: return 'accent';
-      case StatusAgendamento.CANCELADO: return 'warn';
-      case StatusAgendamento.REALIZADO: return 'primary';
-      case StatusAgendamento.FALTOU: return 'warn';
-      default: return 'primary';
-    }
-  }
-
-  formatarDataHora(s: string): string { return new Date(s).toLocaleString('pt-BR'); }
-  private _montarRequest(): AgendamentoRequest {
-    const f = this.agendamentoForm.value;
-    const dataSelecionada = new Date(f.dataConsulta);
-    const hora = f.horaConsulta;
-    dataSelecionada.setMinutes(dataSelecionada.getMinutes() - dataSelecionada.getTimezoneOffset());
-    const dataISO = dataSelecionada.toISOString().slice(0, 10);
-    const dataHoraParaBackend = `${dataISO}T${hora}`;
-    return {
-      pacienteId: f.pacienteId,
-      medicoId: f.medicoId,
-      dataHoraConsulta: dataHoraParaBackend,
-      tipoConsulta: f.tipoConsulta,
-      observacoes: f.observacoes
-    };
-  }
   private mostrarMensagem(msg: string): void {
     this.snackBar.open(msg, 'Fechar', {
       duration: 4000,
