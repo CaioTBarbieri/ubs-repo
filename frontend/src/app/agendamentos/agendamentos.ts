@@ -144,13 +144,15 @@ export class Agendamentos implements OnInit, AfterViewInit {
     };
 
      const requestEditAgendamento = {
+      id: ag.id,
       pacienteId: ag.paciente.id,
       medicoId: ag.medico?.id,
       dataHoraConsulta: dataHoraEnvio,
+      tipoConsulta: ag.tipoConsulta,
       status: ag.status
     };
 
-    const url = `http://localhost:8090/api/agendamentos/${ag.id}`;
+    const url = `http://localhost:8090/api/agendamentos`;
 
     this.http.put(url, requestEditAgendamento).subscribe({
       next: () => {

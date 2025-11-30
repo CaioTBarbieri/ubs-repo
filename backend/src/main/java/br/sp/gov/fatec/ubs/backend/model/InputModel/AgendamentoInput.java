@@ -1,9 +1,10 @@
 package br.sp.gov.fatec.ubs.backend.model.InputModel;
 
 import java.time.LocalDateTime;
-// Importamos o Enum original para evitar duplicação e erros de tipo
-import br.sp.gov.fatec.ubs.backend.model.Agendamento.StatusAgendamento; 
+ 
 import com.fasterxml.jackson.annotation.JsonFormat;
+
+import br.sp.gov.fatec.ubs.backend.model.Agendamento.StatusAgendamento;
 
 public class AgendamentoInput {
 

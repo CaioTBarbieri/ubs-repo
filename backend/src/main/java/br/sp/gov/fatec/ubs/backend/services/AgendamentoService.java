@@ -8,12 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import br.sp.gov.fatec.ubs.backend.model.Agendamento;
+import br.sp.gov.fatec.ubs.backend.model.InputModel.AgendamentoInput;
 import br.sp.gov.fatec.ubs.backend.model.Medico;
 import br.sp.gov.fatec.ubs.backend.model.Paciente;
 import br.sp.gov.fatec.ubs.backend.repositories.AgendamentoRepository;
 import br.sp.gov.fatec.ubs.backend.repositories.MedicoRepository;
 import br.sp.gov.fatec.ubs.backend.repositories.PacienteRepository;
-import br.sp.gov.fatec.ubs.backend.model.InputModel.AgendamentoInput;
 @Service
 public class AgendamentoService {
     
@@ -130,6 +130,8 @@ public class AgendamentoService {
         }
         
         agendamento.get().setStatus(agendamentoAtualizado.getStatus());
+        agendamento.get().setDataHoraConsulta(agendamentoAtualizado.getDataHoraConsulta()); 
+        agendamento.get().setTipoConsulta(agendamentoAtualizado.getTipoConsulta());
         return agendamentoRepository.save(agendamento.get());
     }
     
