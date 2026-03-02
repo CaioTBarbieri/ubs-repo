@@ -1,0 +1,34 @@
+1- Item 1
+ ↳Identificar funcionalidades não implementadas e avaliar viabilidade da implementação:
+  A análise do repositório revelou lacunas significativas em termos de integração, automação e monitoramento, essenciais para um sistema de saúde moderno. A implementação dessas funcionalidades é tecnicamente viável utilizando o ecossistema Spring Boot e Angular já presente, embora varie em complexidade.
+ ↳Funcionalidades não implementadas:
+  - Integração com sistemas externos de saúde (e-SUS, laboratórios).
+  - Módulo de geração de relatórios analíticos e gerenciais.
+  - Sistema de notificações automáticas (SMS/E-mail) para agendamentos.
+  - Auditoria detalhada de ações (quem acessou/alterou o quê).
+  - Interface de dashboard interativo para gestão da UBS.
+  - Funcionalidades completas de agendamento e prontuário no aplicativo Android.
+ ↳Viabilidade: 
+  A viabilidade é alta para a maioria das pendências. A integração externa e o chat em tempo real possuem complexidade elevada devido a requisitos de segurança e protocolos específicos. Relatórios e notificações têm complexidade média e podem ser integrados rapidamente usando bibliotecas padrão (JasperReports, SendGrid).
+ ↳Identificar funcionalidades implementadas mas não adequadas para produção :
+  - Credenciais de banco de dados e chaves secretas JWT expostas em arquivos de configuração (application.properties).
+  - Uso de 'hibernate.ddl-auto=update', que oferece riscos de integridade de dados em ambientes reais.
+  - Tratamento de erros genérico no backend que pode mascarar falhas de segurança.
+  - Extração de texto de PDF utilizando múltiplas bibliotecas de forma redundante e sem validação robusta.
+  - Falta de flags de segurança (HttpOnly, Secure) em todos os fluxos de cookies no frontend.
+  - Ausência de tratamento de erros de rede e feedback visual no aplicativo Android.
+ ↳Avaliar escalabilidade das funcionalidades implementadas com as tecnologias atuais:
+  A arquitetura baseada em Spring Boot e JWT é intrinsecamente escalável horizontalmente devido ao estado stateless. Contudo, o armazenamento de arquivos local no servidor é um gargalo crítico; para escalar, deve-se migrar para serviços de nuvem (AWS S3). O uso de MySQL é adequado, mas exigirá otimização de consultas e cache (Redis) conforme o volume de dados crescer.
+
+2- Item 2
+ ↳Priorização da implementação das correções e das pendências de desenvolvimento (devem corresponder aos itens acima):
+  A priorização foca primeiramente na eliminação de riscos de segurança e integridade, seguida pela entrega de funcionalidades que impactam diretamente o atendimento ao paciente na UBS.
+ ↳Identificar quais são os problemas críticos que inviabilizam o uso em contextos de produção:
+  Os problemas críticos são a exposição de segredos (chaves JWT e senhas de banco) e a configuração insegura do banco de dados (DDL update). Sem a correção imediata desses pontos, o sistema está vulnerável a ataques externos e perda acidental de registros médicos.
+ ↳Identificar quais são as funcionalidades prioritárias para uso da aplicação :
+  - Estabilização do fluxo de autenticação e controle de perfis (Admin, Médico, Paciente).
+  - Interface intuitiva de agendamento de consultas com visualização de disponibilidade em tempo real.
+  - Consolidação do módulo de prontuário e gestão de pacientes (CRUD robusto).
+  - Implementação de notificações de lembrete para reduzir o absenteísmo.
+ ↳Identificar quais são os potenciais problemas solucionáveis para escalabilidade e sua relevância:
+  A migração do armazenamento local para armazenamento em nuvem é a tarefa de escalabilidade mais relevante, pois permite o crescimento do volume de documentos digitalizados. A implementação de 'Rate Limiting' e monitoramento (Prometheus/Grafana) também é vital para garantir que o sistema suporte picos de acesso sem degradação de performance.
