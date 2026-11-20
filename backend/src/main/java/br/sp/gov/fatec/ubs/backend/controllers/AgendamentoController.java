@@ -82,6 +82,34 @@ public class AgendamentoController {
         }
     }
     
+    // Entrar na fila de espera de um horário ocupado
+    @PostMapping("/fila-espera")
+    public ResponseEntity<Map<String, Object>> entrarNaFilaDeEspera(@RequestBody Map<String, Object> request) {
+        try {
+            Long pacienteId = Long.valueOf(request.get("pacienteId").toString());
+            Long medicoId = Long.valueOf(request.get("medicoId").toString());
+            LocalDateTime dataHora = LocalDateTime.parse(request.get("dataHoraConsulta").toString());
+            
+            int posicao = agendamentoService.entrarNaFilaDeEspera(pacienteId, medicoId, dataHora);
+            return ResponseEntity.ok(Map.of("posicao", posicao));
+        } catch (IllegalArgumentException | java.time.format.DateTimeParseException | NullPointerException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    // Quantas pessoas estão na fila de espera de um horário
+    @GetMapping("/medico/{medicoId}/fila-espera")
+    public ResponseEntity<Map<String, Integer>> tamanhoFilaEspera(
+            @PathVariable Long medicoId,
+            @RequestParam String dataHora) {
+        try {
+            LocalDateTime data = LocalDateTime.parse(dataHora);
+            return ResponseEntity.ok(Map.of("tamanho", agendamentoService.tamanhoFilaEspera(medicoId, data)));
+        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
     // Atualizar status do agendamento
     @PutMapping("/{id}/status")
     public ResponseEntity<Agendamento> atualizarStatus(@PathVariable Long id, @RequestBody Map<String, String> request) {
