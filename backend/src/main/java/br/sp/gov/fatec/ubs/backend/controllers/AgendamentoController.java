@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -82,32 +84,38 @@ public class AgendamentoController {
         }
     }
     
-    // Entrar na fila de espera de um horário ocupado
+    // Entrar na fila de espera de um médico em um dia.
+    // Aceita "data" (2030-01-10) ou "dataHoraConsulta" (2030-01-10T09:00:00): o horário é opcional.
     @PostMapping("/fila-espera")
     public ResponseEntity<Map<String, Object>> entrarNaFilaDeEspera(@RequestBody Map<String, Object> request) {
         try {
             Long pacienteId = Long.valueOf(request.get("pacienteId").toString());
             Long medicoId = Long.valueOf(request.get("medicoId").toString());
-            LocalDateTime dataHora = LocalDateTime.parse(request.get("dataHoraConsulta").toString());
+            Object valor = request.get("data") != null ? request.get("data") : request.get("dataHoraConsulta");
+            LocalDate data = converterParaData(valor.toString());
             
-            int posicao = agendamentoService.entrarNaFilaDeEspera(pacienteId, medicoId, dataHora);
+            int posicao = agendamentoService.entrarNaFilaDeEspera(pacienteId, medicoId, data);
             return ResponseEntity.ok(Map.of("posicao", posicao));
-        } catch (IllegalArgumentException | java.time.format.DateTimeParseException | NullPointerException e) {
+        } catch (IllegalArgumentException | DateTimeParseException | NullPointerException e) {
             return ResponseEntity.badRequest().build();
         }
     }
     
-    // Quantas pessoas estão na fila de espera de um horário
+    // Quantas pessoas estão na fila de espera de um médico em um dia
     @GetMapping("/medico/{medicoId}/fila-espera")
     public ResponseEntity<Map<String, Integer>> tamanhoFilaEspera(
             @PathVariable Long medicoId,
-            @RequestParam String dataHora) {
+            @RequestParam String data) {
         try {
-            LocalDateTime data = LocalDateTime.parse(dataHora);
-            return ResponseEntity.ok(Map.of("tamanho", agendamentoService.tamanhoFilaEspera(medicoId, data)));
-        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.ok(Map.of("tamanho", agendamentoService.tamanhoFilaEspera(medicoId, converterParaData(data))));
+        } catch (DateTimeParseException e) {
             return ResponseEntity.badRequest().build();
         }
+    }
+    
+    // Aceita só a data ou data + horário e devolve apenas o dia
+    private LocalDate converterParaData(String texto) {
+        return texto.contains("T") ? LocalDateTime.parse(texto).toLocalDate() : LocalDate.parse(texto);
     }
     
     // Atualizar status do agendamento

@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -35,6 +36,7 @@ class AgendamentoServiceFilaTest {
     @InjectMocks AgendamentoService service;
 
     private final LocalDateTime horario = LocalDateTime.now().plusDays(3).withNano(0);
+    private final LocalDate dia = horario.toLocalDate();
     private Medico medico;
     private Paciente pacienteA;
     private Paciente pacienteB;
@@ -58,24 +60,20 @@ class AgendamentoServiceFilaTest {
     }
 
     @Test
-    void naoEntraNaFilaSeHorarioEstaLivre() {
-        when(agendamentoRepository.countByMedicoAndDataHora(1L, horario)).thenReturn(0L);
-
-        assertThrows(IllegalArgumentException.class, () -> service.entrarNaFilaDeEspera(20L, 1L, horario));
+    void entraNaFilaDeUmDiaSemPrecisarDeHorario() {
+        assertEquals(1, service.entrarNaFilaDeEspera(20L, 1L, dia));
+        assertEquals(1, service.tamanhoFilaEspera(1L, dia));
     }
 
     @Test
-    void entraNaFilaQuandoHorarioOcupado() {
-        when(agendamentoRepository.countByMedicoAndDataHora(1L, horario)).thenReturn(1L);
-
-        assertEquals(1, service.entrarNaFilaDeEspera(20L, 1L, horario));
-        assertEquals(1, service.tamanhoFilaEspera(1L, horario));
+    void naoEntraNaFilaComDataNoPassado() {
+        assertThrows(IllegalArgumentException.class,
+                () -> service.entrarNaFilaDeEspera(20L, 1L, LocalDate.now().minusDays(1)));
     }
 
     @Test
     void cancelamentoAgendaOPrimeiroDaFila() {
-        when(agendamentoRepository.countByMedicoAndDataHora(1L, horario)).thenReturn(1L);
-        service.entrarNaFilaDeEspera(20L, 1L, horario);
+        service.entrarNaFilaDeEspera(20L, 1L, dia);
 
         service.cancelarAgendamento(100L);
 
@@ -85,7 +83,17 @@ class AgendamentoServiceFilaTest {
         assertSame(pacienteB, promovido.getPaciente());
         assertEquals(horario, promovido.getDataHoraConsulta());
         assertEquals(Agendamento.StatusAgendamento.AGENDADO, promovido.getStatus());
-        assertEquals(0, service.tamanhoFilaEspera(1L, horario));
+        assertEquals(0, service.tamanhoFilaEspera(1L, dia));
+    }
+
+    @Test
+    void filaDeOutroDiaNaoEhChamada() {
+        service.entrarNaFilaDeEspera(20L, 1L, dia.plusDays(1));
+
+        service.cancelarAgendamento(100L);
+
+        verify(agendamentoRepository, times(1)).save(any(Agendamento.class));
+        assertEquals(1, service.tamanhoFilaEspera(1L, dia.plusDays(1)));
     }
 
     @Test

@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,27 +47,14 @@ public class AgendamentoService {
             throw new IllegalArgumentException("Médico não está ativo para agendamentos");
         }
         
-        // A hora da consulta é opcional. Sem ela, o agendamento chega à
-        // meia-noite do dia escolhido: a marca de "horário a definir".
-        boolean semHorario = semHorarioDefinido(dataHora);
-
-        // Verificar se médico tem disponibilidade. Sem horário marcado não há
-        // o que conflitar — o agendamento não ocupa um ponto da agenda.
-        if (!semHorario) {
-            Long conflitos = agendamentoRepository.countByMedicoAndDataHora(medicoId, dataHora);
-            if (conflitos > 0) {
-                throw new IllegalArgumentException("Médico não disponível neste horário");
-            }
+        // Verificar se médico tem disponibilidade
+        Long conflitos = agendamentoRepository.countByMedicoAndDataHora(medicoId, dataHora);
+        if (conflitos > 0) {
+            throw new IllegalArgumentException("Médico não disponível neste horário");
         }
-
-        // Verificar se não é no passado. Sem horário marcado a comparação é só
-        // de data: um agendamento para HOJE seria recusado se comparássemos com
-        // o instante atual, já que a meia-noite de hoje sempre ficou para trás.
-        if (semHorario) {
-            if (dataHora.toLocalDate().isBefore(LocalDate.now())) {
-                throw new IllegalArgumentException("Não é possível agendar para uma data no passado");
-            }
-        } else if (dataHora.isBefore(LocalDateTime.now())) {
+        
+        // Verificar se o horário não é no passado
+        if (dataHora.isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Não é possível agendar para horários no passado");
         }
         
@@ -120,7 +106,7 @@ public class AgendamentoService {
         agendamento.get().setStatus(novoStatus);
         Agendamento salvo = agendamentoRepository.save(agendamento.get());
         
-        // Horário liberado: chama o primeiro paciente da fila de espera (se houver)
+        // Vaga liberada: chama o primeiro paciente da fila de espera (se houver)
         if (novoStatus == Agendamento.StatusAgendamento.CANCELADO
                 && statusAnterior != Agendamento.StatusAgendamento.CANCELADO) {
             promoverProximoDaFila(salvo);
@@ -128,8 +114,8 @@ public class AgendamentoService {
         return salvo;
     }
     
-    // Colocar paciente na fila de espera de um horário já ocupado
-    public int entrarNaFilaDeEspera(Long pacienteId, Long medicoId, LocalDateTime dataHora) {
+    // Colocar paciente na fila de espera de um médico em um dia (o horário é opcional)
+    public int entrarNaFilaDeEspera(Long pacienteId, Long medicoId, LocalDate data) {
         if (pacienteRepository.findById(pacienteId).isEmpty()) {
             throw new IllegalArgumentException("Paciente não encontrado");
         }
@@ -140,31 +126,30 @@ public class AgendamentoService {
         if (!medico.get().isAtivo()) {
             throw new IllegalArgumentException("Médico não está ativo para agendamentos");
         }
-        if (dataHora.isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Não é possível entrar na fila de um horário no passado");
+        if (data.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Não é possível entrar na fila de uma data no passado");
         }
-        if (verificarDisponibilidade(medicoId, dataHora)) {
-            throw new IllegalArgumentException("Horário livre: faça o agendamento diretamente");
-        }
-        return filaEsperaService.entrar(medicoId, dataHora, pacienteId);
+        return filaEsperaService.entrar(medicoId, data, pacienteId);
     }
     
-    // Quantas pessoas estão na fila de um horário
-    public int tamanhoFilaEspera(Long medicoId, LocalDateTime dataHora) {
-        return filaEsperaService.tamanho(medicoId, dataHora);
+    // Quantas pessoas estão na fila de um médico em um dia
+    public int tamanhoFilaEspera(Long medicoId, LocalDate data) {
+        return filaEsperaService.tamanho(medicoId, data);
     }
     
-    // Agenda automaticamente o primeiro da fila no horário que acabou de ser liberado
+    // Agenda automaticamente o primeiro da fila na vaga que acabou de ser liberada
     private void promoverProximoDaFila(Agendamento cancelado) {
         Long medicoId = cancelado.getMedico().getId();
         LocalDateTime dataHora = cancelado.getDataHoraConsulta();
+        LocalDate dia = dataHora.toLocalDate();
         
         Optional<Long> proximo;
-        while ((proximo = filaEsperaService.proximo(medicoId, dataHora)).isPresent()) {
+        while ((proximo = filaEsperaService.proximo(medicoId, dia)).isPresent()) {
             Optional<Paciente> paciente = pacienteRepository.findById(proximo.get());
             if (paciente.isEmpty()) {
                 continue; // paciente não existe mais: chama o seguinte da fila
             }
+            // O novo agendamento herda a data (e o horário, se houver) da vaga liberada
             Agendamento novo = new Agendamento(paciente.get(), cancelado.getMedico(), dataHora, cancelado.getTipoConsulta());
             novo.setObservacoes("Agendado automaticamente pela fila de espera");
             agendamentoRepository.save(novo);
@@ -215,20 +200,8 @@ public class AgendamentoService {
     
     // Verificar disponibilidade do médico
     public boolean verificarDisponibilidade(Long medicoId, LocalDateTime dataHora) {
-        // Sem horário definido o agendamento não disputa um ponto da agenda.
-        if (semHorarioDefinido(dataHora)) {
-            return true;
-        }
         Long conflitos = agendamentoRepository.countByMedicoAndDataHora(medicoId, dataHora);
         return conflitos == 0;
-    }
-
-    /**
-     * Meia-noite é a marca de "horário a definir", gravada quando a hora é
-     * deixada em branco na tela (ver Agendamento#isHorarioDefinido).
-     */
-    private boolean semHorarioDefinido(LocalDateTime dataHora) {
-        return dataHora != null && LocalTime.MIDNIGHT.equals(dataHora.toLocalTime());
     }
     
     // Reagendar consulta
